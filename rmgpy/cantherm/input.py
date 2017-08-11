@@ -162,6 +162,10 @@ def species(label, *args, **kwargs):
         job = StatMechJob(species=spec, path=path)
         logging.debug('Added species {0} to a stat mech job.'.format(label))
         jobList.append(job)
+    elif len(args) > 1:
+        raise InputError('species {0} can only have one non-keyword argument '
+                         'which should be the path to quantum file.'
+                         ''.format(spec.label))
     
     if len(kwargs) > 0:
         # The species parameters are given explicitly
@@ -208,7 +212,7 @@ def species(label, *args, **kwargs):
         spec.thermo = thermo
         spec.reactive = reactive
         
-        if spec.thermo is None and spec.conformer.E0 is None and path is None:
+        if len(args) == 0 and spec.thermo is None and spec.conformer.E0 is None and path is None:
             if not spec.molecule:
                 raise InputError('Neither thermo, E0, species file path, nor structure specified, cannot estimate'
                                  ' thermo properties of species {0}'.format(spec.label))
@@ -227,7 +231,7 @@ def species(label, *args, **kwargs):
                 else:
                     spec.conformer.E0 = spec.thermo.E0
 
-        if not spec.hasStatMech() and structure is not None: 
+        if len(args) == 0 and not spec.hasStatMech() and structure is not None:
             # generate stat mech info if it wasn't provided before
             spec.generateStatMech()
 
