@@ -32,7 +32,7 @@ import math
 import numpy
 import logging
 import os.path
-from rmgpy.cantherm.common import checkConformerEnergy
+from rmgpy.arkane.common import checkConformerEnergy
 import rmgpy.constants as constants
 from rmgpy.statmech import IdealGasTranslation, NonlinearRotor, LinearRotor, HarmonicOscillator, Conformer
 
@@ -42,7 +42,7 @@ class GaussianLog:
     """
     Represent a log file from Gaussian. The attribute `path` refers to the
     location on disk of the Gaussian log file of interest. Methods are provided
-    to extract a variety of information into CanTherm classes and/or NumPy
+    to extract a variety of information into Arkane classes and/or NumPy
     arrays.
     """
 

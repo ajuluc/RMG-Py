@@ -29,21 +29,26 @@
 ###############################################################################
 
 import math
-import numpy
 import logging
 import os.path
+
+import numpy
+
 import rmgpy.constants as constants
 from rmgpy.exceptions import InputError
-from rmgpy.cantherm.common import checkConformerEnergy
+from rmgpy.arkane.common import checkConformerEnergy
 from rmgpy.statmech import IdealGasTranslation, NonlinearRotor, LinearRotor, HarmonicOscillator, Conformer
+
 ################################################################################
+
+
 class QchemLog:
     """
     Represent an output file from Qchem. The attribute `path` refers to the
     location on disk of the Qchem output file of interest. Methods are provided
-    to extract a variety of information into CanTherm classes and/or NumPy
+    to extract a variety of information into Arkane classes and/or NumPy
     arrays.
-    """    
+    """
 
     def __init__(self, path):
         self.path = path
@@ -73,7 +78,7 @@ class QchemLog:
 
     def loadForceConstantMatrix(self):
         """
-        Return the force constant matrix (in Cartesian coordinates) from the 
+        Return the force constant matrix (in Cartesian coordinates) from the
         QChem log file. If multiple such matrices are identified,
         only the last is returned. The units of the returned force constants
         are J/m^2. If no force constant matrix can be found in the log file,
@@ -105,16 +110,18 @@ class QchemLog:
         # Close file when finished
         f.close()
 
-        return F        
-    
+        return F
+
     def loadGeometry(self):
-        
+
         """
         Return the optimum geometry of the molecular configuration from the
         Qchem log file. If multiple such geometries are identified, only the
         last is returned.
         """
-        atom = []; coord = []; number = []; 
+        atom = []
+        coord = []
+        number = []
 
 
         with open(self.path) as f:
@@ -154,9 +161,9 @@ class QchemLog:
         # Assign appropriate mass to each atom in molecule
         # These values were taken from "Atomic Weights and Isotopic Compositions" v3.0 (July 2010) from NIST
 
-        mass = [0]*len(atom)  
-        
-        for i in range(len(atom)):  
+        mass = [0]*len(atom)
+
+        for i in range(len(atom)):
             if atom[i] == 'H':
                 mass[i] = 1.00782503207
                 number.append('1')
@@ -184,7 +191,7 @@ class QchemLog:
         if len(number) == 0 or len(coord) == 0 or len(mass) == 0:
             raise InputError('Unable to read the numbers and types of atoms from Qchem output file {0}'.format(self.path))
         return coord, number, mass
-    
+
     def loadConformer(self, symmetry=None, spinMultiplicity=0, opticalIsomers=1, symfromlog=None, label=''):
         """
         Load the molecular degree of freedom data from a output file created as
@@ -226,13 +233,13 @@ class QchemLog:
                                 elif len(line.split()) == 3:
                                     frequencies.extend([float(d) for d in line.split()[-2:]])
                                 elif len(line.split()) == 2:
-                                    frequencies.extend([float(d) for d in line.split()[-1:]])    
+                                    frequencies.extend([float(d) for d in line.split()[-1:]])
                             line = f.readline()
                         line = f.readline()
                         # If there is an imaginary frequency, remove it
                         if frequencies[0] < 0.0:
                             frequencies = frequencies[1:]
-                            
+
                         vibration = HarmonicOscillator(frequencies=(frequencies,"cm^-1"))
                         #modes.append(vibration)
                         freq.append(vibration)
@@ -255,7 +262,7 @@ class QchemLog:
                                 inertia[i] *= (constants.a0/1e-10)**2
                             inertia = numpy.sqrt(inertia[0]*inertia[1])
                             rotation = LinearRotor(inertia=(inertia,"amu*angstrom^2"), symmetry=symmetry)    
-                            rot.append(rotation)                             
+                            rot.append(rotation)
                         else:
                             for i in range(3):
                                 inertia[i] *= (constants.a0/1e-10)**2
@@ -279,11 +286,11 @@ class QchemLog:
         f.close()
         modes = mmass + rot + freq
         return Conformer(E0=(E0*0.001,"kJ/mol"), modes=modes, spinMultiplicity=spinMultiplicity, opticalIsomers=opticalIsomers)
-              
+
     def loadEnergy(self,frequencyScaleFactor=1.):
         """
-        Load the energy in J/mol from a Qchem log file.  Only the last energy 
-        in the file is returned. The zero-point energy is *not* included in 
+        Load the energy in J/mol from a Qchem log file.  Only the last energy
+        in the file is returned. The zero-point energy is *not* included in
         the returned value.
         """
         E0 = None
@@ -344,7 +351,7 @@ class QchemLog:
               
     def loadScanEnergies(self):
         """
-        Extract the optimized energies in J/mol from a Qchem log file, e.g. the 
+        Extract the optimized energies in J/mol from a Qchem log file, e.g. the
         result of a Qchem "PES Scan" quantum chemistry calculation.
         """
         Vlist = []
@@ -367,10 +374,9 @@ class QchemLog:
             if 'SCF failed to converge' in line:
                 print 'Qchem Job did not sucessfully complete: SCF failed to converge'
                 break
-        # Close file when finished   
+        # Close file when finished
         print '   Assuming', os.path.basename(self.path), 'is the output from a Qchem PES scan...'
-        f.close()  
-                    
+        f.close()
 
         Vlist = numpy.array(Vlist, numpy.float64)
         # check to see if the scanlog indicates that one of your reacting species may not be the lowest energy conformer
@@ -379,7 +385,7 @@ class QchemLog:
         # Adjust energies to be relative to minimum energy conformer
         # Also convert units from Hartree/particle to J/mol
         Vlist -= numpy.min(Vlist)
-        Vlist *= constants.E_h * constants.Na      
+        Vlist *= constants.E_h * constants.Na
         angle = numpy.arange(0.0, 2*math.pi+0.00001, 2*math.pi/(len(Vlist)-1), numpy.float64)
         return Vlist, angle
         
