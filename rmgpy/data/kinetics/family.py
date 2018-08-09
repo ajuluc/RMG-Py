@@ -1514,7 +1514,6 @@ class KineticsFamily(Database):
         if self.forbidden is not None and self.forbidden.isMoleculeForbidden(molecule):
             return True
 
-
         return False
 
     def __createReaction(self, reactants, products, is_forward):
