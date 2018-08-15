@@ -48,6 +48,7 @@ from rmgpy.thermo import NASAPolynomial, NASA, ThermoData, Wilhoit
 from rmgpy.molecule import Molecule, Bond, Group
 import rmgpy.molecule
 from rmgpy.species import Species
+from rmgpy.ml.estimator import MLEstimator
 
 #: This dictionary is used to add multiplicity to species label
 _multiplicity_labels = {1:'S',2:'D',3:'T',4:'Q',5:'V',}
@@ -1112,8 +1113,6 @@ class ThermoDatabase(object):
         """
         from rmgpy.rmg.input import getInput
         
-        thermo0 = None
-        
         thermo0 = self.getThermoDataFromLibraries(species)
         
         if thermo0 is not None:
@@ -1127,6 +1126,12 @@ class ThermoDatabase(object):
         except Exception:
             logging.debug('Quantum Mechanics DB could not be found.')
             quantumMechanics = None
+
+        try:
+            ml_estimator = getInput('MLEstimator')
+        except Exception:
+            logging.debug('ML estimator could not be found.')
+            ml_estimator = None
             
         if quantumMechanics:
             original_molecule = species.molecule[0]
@@ -1177,7 +1182,7 @@ class ThermoDatabase(object):
                     thermo0 = quantumMechanics.getThermoData(original_molecule) # returns None if it fails
                 
         if thermo0 is None:
-            # Use group additivity methods to determine thermo for molecule (or if QM fails completely)
+            # First try finding stable species in libraries and using HBI
             for mol in species.molecule:
                 if mol.reactive:
                     original_molecule = mol
@@ -1219,17 +1224,17 @@ class ThermoDatabase(object):
                     species.molecule = newMolList
                     thermo0 = thermo[0][2]
 
+            if thermo0 is None:
+                # Use group additivity methods or ML to determine thermo for molecule (or if QM fails completely)
+                if (ml_estimator is not None
+                        and all(a.isHydrogen() or a.isCarbon() or a.isNitrogen() or a.isOxygen()
+                                for a in species.molecule[0].atoms)): # Currently, ML only works for HCNO molecules
+                        thermo0 = self.get_thermo_data_from_ml(species, ml_estimator)
                 else:
-                    # Did not find any saturated values in the thermo libraries, so try group additivity instead
                     thermo0 = self.getThermoDataFromGroups(species)
 
-            else:
-                # Saturated molecule, estimate it via groups since we've already checked libraries much earlier
-                thermo0 = self.getThermoDataFromGroups(species)
-                
-            # update entropy by symmetry correction
+            # Update entropy by symmetry correction (not included in trained ML model)
             thermo0.S298.value_si -= constants.R * math.log(species.getSymmetryNumber())
-
 
         # Make sure to calculate Cp0 and CpInf if it wasn't done already
         findCp0andCpInf(species, thermo0)
@@ -1404,6 +1409,21 @@ class ThermoDatabase(object):
         findCp0andCpInf(species, thermoData)
         return thermoData
 
+    def get_thermo_data_from_ml(self, species, ml_estimator):
+        """
+        Return the set of thermodynamic parameters corresponding to a given
+        :class:`Species` object `species` by estimation using the ML
+        estimator.
+
+        The entropy is not corrected for the symmetry of the molecule.
+        This should be done later by the calling function.
+        """
+        if species.molecule[0].isRadical():
+            thermo = [self.estimateRadicalThermoViaHBI(mol, ml_estimator.get_thermo_data) for mol in species.molecule]
+            return min(thermo, key=lambda tdata: tdata.H298)
+        else:
+            return ml_estimator.get_thermo_data_for_species(species)
+
     def prioritizeThermo(self, species, thermoDataList):
         """
         Use some metrics to reorder a list of thermo data from best to worst.
@@ -1435,7 +1455,7 @@ class ThermoDatabase(object):
             indices = [0]
         return indices
 
-    def estimateRadicalThermoViaHBI(self, molecule, stableThermoEstimator ):
+    def estimateRadicalThermoViaHBI(self, molecule, stableThermoEstimator):
         """
         Estimate the thermodynamics of a radical by saturating it,
         applying the provided stableThermoEstimator method on the saturated species,
@@ -1471,7 +1491,8 @@ class ThermoDatabase(object):
             thermoData_sat = thermoData_sat.toThermoData()
         
         
-        if not stableThermoEstimator == self.computeGroupAdditivityThermo:
+        if not (stableThermoEstimator == self.computeGroupAdditivityThermo
+                or isinstance(stableThermoEstimator.__self__, MLEstimator)):
             #remove the symmetry contribution to the entropy of the saturated molecule
             ##assumes that the thermo data comes from QMTP or from a thermolibrary
             thermoData_sat.S298.value_si += constants.R * math.log(saturatedStruct.getSymmetryNumber())

@@ -370,6 +370,18 @@ def quantumMechanics(
                                         onlyCyclics = onlyCyclics,
                                         maxRadicalNumber = maxRadicalNumber,
                                         )
+
+def mlEstimator(thermo=True):
+    import rmgpy.ml
+    from rmgpy.ml.estimator import MLEstimator
+
+    # Currently only support thermo
+    if thermo:
+        pretrained_models_path = os.path.join(rmgpy.ml.__path__[0], 'pretrained_models')
+        Hf298_path = os.path.join(pretrained_models_path, 'Hf298')
+        S298_path = os.path.join(pretrained_models_path, 'S298')
+        Cp_path = os.path.join(pretrained_models_path, 'Cp')
+        rmg.ml_estimator = MLEstimator(Hf298_path, S298_path, Cp_path)
                     
 
 def pressureDependence(
@@ -531,6 +543,7 @@ def readInputFile(path, rmg0):
         'solvation': solvation,
         'model': model,
         'quantumMechanics': quantumMechanics,
+        'mlEstimator': mlEstimator,
         'pressureDependence': pressureDependence,
         'options': options,
         'generatedSpeciesConstraints': generatedSpeciesConstraints,
@@ -797,6 +810,8 @@ def getInput(name):
             return rmg.speciesConstraints
         elif name == 'quantumMechanics':
             return rmg.quantumMechanics
+        elif name == 'MLEstimator':
+            return rmg.ml_estimator
         elif name == 'thermoCentralDatabase':
             return rmg.thermoCentralDatabase
         else:
