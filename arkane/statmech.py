@@ -38,24 +38,21 @@ import os.path
 import math
 import numpy
 import logging
-
 from rdkit.Chem import GetPeriodicTable
-
 import rmgpy.constants as constants
-
-from rmgpy.arkane.output import prettify
-from rmgpy.arkane.gaussian import GaussianLog
-from rmgpy.arkane.molpro import MolproLog
-from rmgpy.arkane.qchem import QchemLog
-
+from arkane.output import prettify
+from arkane.gaussian import GaussianLog
+from arkane.molpro import MolproLog
+from arkane.qchem import QchemLog
 from rmgpy.species import TransitionState, Species
-
 from rmgpy.statmech.translation import Translation, IdealGasTranslation
 from rmgpy.statmech.rotation import Rotation, LinearRotor, NonlinearRotor, KRotor, SphericalTopRotor
 from rmgpy.statmech.vibration import Vibration, HarmonicOscillator
 from rmgpy.statmech.torsion import Torsion, HinderedRotor, FreeRotor
 from rmgpy.statmech.conformer import Conformer
 from rmgpy.exceptions import InputError
+
+################################################################################
 
 # These are the atoms we currently have enthalpies of formation for
 atom_num_dict = {1: 'H',
@@ -66,6 +63,7 @@ atom_num_dict = {1: 'H',
 _rdkit_periodic_table = GetPeriodicTable()
 
 ################################################################################
+
 
 class ScanLog(object):
     """

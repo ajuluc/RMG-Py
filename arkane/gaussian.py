@@ -32,11 +32,12 @@ import math
 import numpy
 import logging
 import os.path
-from rmgpy.arkane.common import checkConformerEnergy
+from arkane.common import checkConformerEnergy
 import rmgpy.constants as constants
 from rmgpy.statmech import IdealGasTranslation, NonlinearRotor, LinearRotor, HarmonicOscillator, Conformer
 
 ################################################################################
+
 
 class GaussianLog:
     """

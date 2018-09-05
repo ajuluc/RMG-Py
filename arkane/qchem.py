@@ -31,13 +31,11 @@
 import math
 import logging
 import os.path
-
 import numpy
-
 import rmgpy.constants as constants
 from rmgpy.exceptions import InputError
-from rmgpy.arkane.common import checkConformerEnergy
 from rmgpy.statmech import IdealGasTranslation, NonlinearRotor, LinearRotor, HarmonicOscillator, Conformer
+from arkane.common import checkConformerEnergy
 
 ################################################################################
 

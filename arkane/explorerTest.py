@@ -31,10 +31,11 @@
 import unittest
 import os
 from nose.plugins.attrib import attr
+from arkane import Arkane
+from arkane.explorer import ExplorerJob
 
-from rmgpy.arkane import Arkane
-from rmgpy.arkane.explorer import ExplorerJob
 ################################################################################
+
 
 @attr('functional')
 class testExplorerJob(unittest.TestCase):
